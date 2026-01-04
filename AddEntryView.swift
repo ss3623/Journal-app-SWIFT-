@@ -8,25 +8,62 @@ struct AddEntryView: View {
     @State private var title = ""
     @State private var attributedContent = NSAttributedString(string: "")
     @State private var selectedDate = Date()
+    @State private var selectedMood: Mood?
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                Form {
-                    Section(header: Text("Title")) {
-                        TextField("Entry title", text: $title)
-                    }
-                    
-                    Section(header: Text("Date")) {
-                        DatePicker("Entry date", selection: $selectedDate, displayedComponents: [.date])
+        ScrollView {
+            VStack(spacing: 16) {
+                // Title
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Title")
+                        .font(.headline)
+                    TextField("Entry title", text: $title)
+                        .textFieldStyle(.roundedBorder)
+                }
+                .padding(.horizontal)
+                
+                // Date
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Date")
+                        .font(.headline)
+                    DatePicker("Entry date", selection: $selectedDate, displayedComponents: [.date])
+                }
+                .padding(.horizontal)
+                
+                // Mood
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Mood")
+                        .font(.headline)
+                    HStack(spacing: 16) {
+                        ForEach(Mood.allCases, id: \.self) { mood in
+                            Button(action: {
+                                selectedMood = mood
+                            }) {
+                                VStack(spacing: 4) {
+                                    Text(mood.rawValue)
+                                        .font(.system(size: 40))
+                                    Text(mood.name)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(width: 70, height: 70)
+                                .background(
+                                    selectedMood == mood ? mood.color.opacity(0.3) : Color.clear
+                                )
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
-                .frame(height: 150)
+                .padding(.horizontal)
                 
+                Divider()
+                
+                // Content
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Content")
                         .font(.headline)
-                        .padding(.horizontal)
                     
                     FormattingToolbar(
                         onBold: { applyFormatting(.bold) },
@@ -35,26 +72,20 @@ struct AddEntryView: View {
                     )
                     
                     RichTextEditor(attributedText: $attributedContent)
-                        .frame(minHeight: 300)
+                        .frame(height: 400)
                         .border(Color.gray.opacity(0.3))
-                        .padding(.horizontal)
                 }
-                .padding(.vertical)
+                .padding(.horizontal)
             }
-            .navigationTitle("New Entry")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+            .padding(.vertical)
+        }
+        .navigationTitle("New Entry")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    saveEntry()
                 }
-                
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        saveEntry()
-                    }
-                    .disabled(title.isEmpty)
-                }
+                .disabled(title.isEmpty)
             }
         }
     }
@@ -77,7 +108,13 @@ struct AddEntryView: View {
     
     private func saveEntry() {
         let contentData = try? NSKeyedArchiver.archivedData(withRootObject: attributedContent, requiringSecureCoding: false)
-        manager.addEntry(title: title, content: attributedContent.string, date: selectedDate, attributedContent: contentData)
+        manager.addEntry(
+            title: title,
+            content: attributedContent.string,
+            date: selectedDate,
+            attributedContent: contentData,
+            mood: selectedMood
+        )
         dismiss()
     }
     

@@ -14,6 +14,7 @@ struct JournalEntry : Identifiable, Codable {
     var content: String
     var date: Date
     var attributedContent: Data?
+    var mood: Mood?
     
     
 }

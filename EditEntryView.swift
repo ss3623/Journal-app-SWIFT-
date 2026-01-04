@@ -1,10 +1,3 @@
-//
-//  EditEntryView.swift
-//  journal
-//
-//  Created by Sania Singh on 04/01/2026.
-//
-
 import SwiftUI
 import AppKit
 
@@ -12,55 +5,85 @@ struct EditEntryView: View {
     @Environment(\.dismiss) var dismiss
     let entry: JournalEntry
     @ObservedObject var manager: JournalManager
+    var onSave: () -> Void
     
     @State private var title: String
-    @State private var attributedContent: NSAttributedString
+    @State private var content: String
     @State private var selectedDate: Date
+    @State private var selectedMood: Mood?
     
-    init(entry: JournalEntry, manager: JournalManager) {
+    init(entry: JournalEntry, manager: JournalManager, onSave: @escaping () -> Void = {}) {
         self.entry = entry
         self.manager = manager
+        self.onSave = onSave
         
         _title = State(initialValue: entry.title)
+        _content = State(initialValue: entry.content)
         _selectedDate = State(initialValue: entry.date)
-        
-        if let data = entry.attributedContent,
-           let attrString = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSAttributedString.self, from: data) {
-            _attributedContent = State(initialValue: attrString)
-        } else {
-            _attributedContent = State(initialValue: NSAttributedString(string: entry.content))
-        }
+        _selectedMood = State(initialValue: entry.mood)
     }
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                Form {
-                    Section(header: Text("Title")) {
+            ScrollView {
+                VStack(spacing: 16) {
+                    // Title
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Title")
+                            .font(.headline)
                         TextField("Entry title", text: $title)
+                            .textFieldStyle(.roundedBorder)
                     }
+                    .padding(.horizontal)
                     
-                    Section(header: Text("Date")) {
+                    // Date
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Date")
+                            .font(.headline)
                         DatePicker("Entry date", selection: $selectedDate, displayedComponents: [.date])
                     }
-                }
-                .frame(height: 150)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Content")
-                        .font(.headline)
-                        .padding(.horizontal)
+                    .padding(.horizontal)
                     
-                    FormattingToolbar(
-                        onBold: { applyFormatting(.bold) },
-                        onItalic: { applyFormatting(.italic) },
-                        onUnderline: { applyFormatting(.underline) }
-                    )
+                    // Mood
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Mood")
+                            .font(.headline)
+                        HStack(spacing: 16) {
+                            ForEach(Mood.allCases, id: \.self) { mood in
+                                Button(action: {
+                                    selectedMood = mood
+                                }) {
+                                    VStack(spacing: 4) {
+                                        Text(mood.rawValue)
+                                            .font(.system(size: 40))
+                                        Text(mood.name)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(width: 70, height: 70)
+                                    .background(
+                                        selectedMood == mood ? mood.color.opacity(0.3) : Color.clear
+                                    )
+                                    .cornerRadius(8)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
                     
-                    RichTextEditor(attributedText: $attributedContent)
-                        .frame(minHeight: 300)
-                        .border(Color.gray.opacity(0.3))
-                        .padding(.horizontal)
+                    Divider()
+                    
+                    // Content
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Content")
+                            .font(.headline)
+                        
+                        TextEditor(text: $content)
+                            .frame(height: 400)
+                            .border(Color.gray.opacity(0.3))
+                    }
+                    .padding(.horizontal)
                 }
                 .padding(.vertical)
             }
@@ -82,35 +105,15 @@ struct EditEntryView: View {
         }
     }
     
-    private func applyFormatting(_ type: FormattingType) {
-        let mutableString = NSMutableAttributedString(attributedString: attributedContent)
-        let range = NSRange(location: 0, length: mutableString.length)
-        
-        switch type {
-        case .bold:
-            mutableString.applyFontTraits(.boldFontMask, range: range)
-        case .italic:
-            mutableString.applyFontTraits(.italicFontMask, range: range)
-        case .underline:
-            mutableString.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
-        }
-        
-        attributedContent = mutableString
-    }
-    
     private func saveChanges() {
         if let index = manager.entries.firstIndex(where: { $0.id == entry.id }) {
-            let contentData = try? NSKeyedArchiver.archivedData(withRootObject: attributedContent, requiringSecureCoding: false)
             manager.entries[index].title = title
-            manager.entries[index].content = attributedContent.string
+            manager.entries[index].content = content
             manager.entries[index].date = selectedDate
-            manager.entries[index].attributedContent = contentData
+            manager.entries[index].mood = selectedMood
             manager.saveEntries()
         }
+        onSave()
         dismiss()
-    }
-    
-    enum FormattingType {
-        case bold, italic, underline
     }
 }

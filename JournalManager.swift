@@ -1,3 +1,11 @@
+
+//
+//  Untitled.swift
+//  journal
+//
+//  Created by Sania Singh on 04/01/2026.
+//
+
 import Foundation
 import Combine
 import SwiftUI
@@ -11,12 +19,16 @@ class JournalManager: ObservableObject {
         loadEntries()
     }
     
-    func addEntry(title: String, content: String, date: Date, attributedContent: Data? = nil) {
-        let newEntry = JournalEntry(title: title, content: content, date: date, attributedContent: attributedContent)
+    func addEntry(title: String, content: String, date: Date, attributedContent: Data? = nil, mood: Mood? = nil) {
+        let newEntry = JournalEntry(
+            title: title,
+            content: content,
+            date: date,
+            attributedContent: attributedContent,
+            mood: mood
+        )
         entries.insert(newEntry, at: 0)
         saveEntries()
-    
-    
     }
     
     func deleteEntry(at offsets: IndexSet) {
@@ -37,3 +49,4 @@ class JournalManager: ObservableObject {
         }
     }
 }
+

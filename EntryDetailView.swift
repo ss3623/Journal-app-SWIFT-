@@ -37,25 +37,11 @@ struct EntryDetailView: View {
                 showingEditView = true
             }
         }
-        .sheet(isPresented: $showingEditView) {
+        .navigationDestination(isPresented: $showingEditView) {
             EditEntryView(entry: entry, manager: manager)
         }
     }
 }
 
-struct AttributedTextView: NSViewRepresentable {
-    let attributedString: NSAttributedString
-    
-    func makeNSView(context: Context) -> NSTextView {
-        let textView = NSTextView()
-        textView.isEditable = false
-        textView.isSelectable = true
-        textView.backgroundColor = .clear
-        textView.textStorage?.setAttributedString(attributedString)
-        return textView
-    }
-    
-    func updateNSView(_ nsView: NSTextView, context: Context) {
-        nsView.textStorage?.setAttributedString(attributedString)
-    }
-}
+
+
